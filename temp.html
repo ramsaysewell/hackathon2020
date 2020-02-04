@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+		<title>Document</title>
+	</head>
+	<body>
+		<p id="text"></p>
+		<script>
+			let obj1, obj2;
+			async function getFile(name1, name2) {
+				let data = await fetch(name1).then(res => res.json());
+				let data2 = await fetch(name2).then(res => res.json());
+				data2.map(element1 => {
+					data.map(element2 => {
+						if (element1["Area"] == element2["Area"]) {
+							Object.assign(element2, {
+								longitude: element1.Longitude
+							});
+							Object.assign(element2, {
+								latitude: element1.Latitude
+							});
+						}
+					});
+				});
+				document.getElementById("text").innerHTML = JSON.stringify(
+					data
+				);
+			}
+			getFile("Population.json", "yos.json");
+		</script>
+	</body>
+</html>

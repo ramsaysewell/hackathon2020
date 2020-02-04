@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta charset="utf-8" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+		<link
+			rel="stylesheet"
+			href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"
+		/>
+		<style>
+			body {
+				background: #222;
+			}
+			.high {
+				border-radius: 50%;
+				min-height: 50px;
+				min-width: 50px;
+				background: rgb(255, 255, 255);
+				background: radial-gradient(
+					circle,
+					rgba(255, 255, 255, 1) 1%,
+					rgba(255, 255, 255, 1) 21%,
+					rgba(59, 246, 35, 1) 22%,
+					rgba(255, 255, 255, 0) 68%
+				);
+				z-index: 1000;
+			}
+
+			.medium {
+				border-radius: 50%;
+				min-height: 35px;
+				min-width: 35px;
+				background: rgb(255, 255, 255);
+				background: radial-gradient(
+					circle,
+					rgba(255, 255, 255, 1) 1%,
+					rgba(255, 255, 255, 1) 14%,
+					rgba(35, 246, 189, 1) 15%,
+					rgba(255, 255, 255, 0) 68%
+				);
+				z-index: 500;
+			}
+
+			.low {
+				border-radius: 50%;
+				min-height: 20px;
+				min-width: 20px;
+				background: rgb(255, 255, 255);
+				background: radial-gradient(
+					circle,
+					rgba(255, 255, 255, 1) 1%,
+					rgba(255, 255, 255, 1) 7%,
+					rgba(35, 172, 246, 1) 9%,
+					rgba(255, 255, 255, 0) 68%
+				);
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				z-index: 200;
+			}
+			* {
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="map" style="width: 100%; min-height: 95vh"></div>
+		<input type="file" id="input" />
+		<select id="select">
+			<option>lights</option>
+			<option>population</option>
+		</select>
+		<button id="submit" type="submit">Submit</button>
+		<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+		<script>
+			var cities = L.layerGroup();
+
+			var mbAttr =
+					'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+					'<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+					'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+				mbUrl =
+					"https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoicmFtc2F5c2V3ZWxsIiwiYSI6ImNqemE3aXFqbzAyNDIzY28yZjVvNTFjeXYifQ.hWFikKYGyL7iC8zIvxJ82g";
+
+			var grayscale = L.tileLayer(mbUrl, {
+					id: "mapbox/dark-v10",
+					attribution: mbAttr,
+					updateWhenZooming: false,
+					updateWhenIdle: false,
+					style: "mapbox://styles/mapbox/dark-v10"
+				}),
+				streets = L.tileLayer(mbUrl, {
+					id: "mapbox/dark-v10",
+					attribution: mbAttr,
+					updateWhenZooming: false,
+					style: "mapbox://styles/mapbox/dark-v10"
+				});
+
+			var map = L.map("map", {
+				center: [56.47, -2.95],
+				zoom: 12,
+				layers: [grayscale, cities]
+			});
+
+			var baseLayers = {
+				Grayscale: grayscale,
+				Streets: streets
+			};
+
+			var overlays = {
+				Cities: cities
+			};
+
+			var low = L.divIcon({ className: "low" });
+			var medium = L.divIcon({ className: "medium" });
+			var high = L.divIcon({ className: "high" });
+			let input = document.getElementById("input");
+			let select = document.getElementById("select");
+
+			function handleFiles(value) {
+				const fileList = this
+					.files; /* now you can work with the file list */
+				console.log(value);
+				getData(
+					this.files[0].name,
+					document.getElementById("select").value
+				);
+			}
+
+			input.addEventListener("change", handleFiles, false);
+			const getData = (file, option) => {
+				if (option == "population") {
+					fetch("./Population.json")
+						.then(response => {
+							return response.json();
+						})
+						.then(json => {
+							for (let i = 0; i < json.length; i++) {
+								if (option == "population") {
+									if (
+										json[i].longitude != undefined &&
+										json[i].latitude != undefined
+									) {
+										let lon = json[i].longitude;
+										let lat = json[i].latitude;
+										L.circleMarker([lat, lon], {
+											radius: Math.cbrt(json[i]["All"])
+										})
+											.addTo(map)
+											.bindPopup(
+												"<h2>Location: " +
+													json[i]["Area"] +
+													"</h2><p>Population: " +
+													json[i]["All"] +
+													"</p>"
+											);
+									}
+								} else {
+								}
+							}
+						});
+				} else if (option == "lights") {
+					fetch("./newcoords2.json")
+						.then(res => {
+							return res.json();
+						})
+						.then(json => {
+							for (let i = 0; i < json.coords.length; i++) {
+								lon = json.coords[i].lon;
+								lat = json.coords[i].lat;
+								type = parseInt(json.coords[i].type);
+								if (type > 150 && type < 300) {
+									L.marker([lat, lon], {
+										icon: high
+									}).addTo(map);
+								} else if (type > 50 && type < 150) {
+									L.marker([lat, lon], {
+										icon: medium
+									}).addTo(map);
+								} else {
+									L.marker([lat, lon], {
+										icon: low
+									}).addTo(map);
+								}
+							}
+						});
+				}
+			};
+			// getData("./Population.json");
+		</script>
+	</body>
+</html>
